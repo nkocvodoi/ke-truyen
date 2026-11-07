@@ -17,7 +17,7 @@
 body{margin:0}
 img{max-width:100%}
 [hidden]{display:none!important}
-/* Layout: one-screen app. Home = shelf card centred in a narrow column; Reader = full-bleed stage with floating top/bottom bars. Single dark look (reading in bed), chosen on purpose. */
+/* Layout: one-screen app. Home = shelf card centred in a narrow column; Reader = full-bleed stage with floating top/bottom bars; Shelf = drawer from the left. Single dark look (reading in bed), chosen on purpose. */
 :root{
   --ink:#111214;       /* page ground */
   --panel:#1b1d21;     /* bars, cards */
@@ -26,18 +26,22 @@ img{max-width:100%}
   --dim:#9a9ca3;
   --tone:#8fc7c2;      /* screentone teal accent */
   --tone-ink:#0d2624;
+  --danger:#e58a7b;
   --display:"Bricolage Grotesque",ui-rounded,system-ui,sans-serif;
   --body:"Be Vietnam Pro",system-ui,-apple-system,sans-serif;
   color-scheme:dark;
 }
 html,body{height:100%}
 body{background:var(--ink);color:var(--paper);font-family:var(--body);font-size:15px;line-height:1.55;-webkit-tap-highlight-color:transparent}
-button,label.btn{font:inherit;color:inherit}
+button,label.btn,input{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--tone);outline-offset:2px}
 
 /* ---------- Home ---------- */
-#home{min-height:100%;display:flex;justify-content:center;padding-top:calc(env(safe-area-inset-top,0px) + 40px);padding-bottom:calc(env(safe-area-inset-bottom,0px) + 56px);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+#home{min-height:100%;display:flex;justify-content:center;padding-top:calc(env(safe-area-inset-top,0px) + 12px);padding-bottom:calc(env(safe-area-inset-bottom,0px) + 56px);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 .col{width:100%;max-width:480px;display:flex;flex-direction:column;gap:28px}
+.topline{display:flex;margin:0 0 -16px -10px}
+.menu{position:relative}
+.menu .badge{position:absolute;top:6px;right:4px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--tone);color:var(--tone-ink);font-size:.7rem;font-weight:700;line-height:18px;text-align:center;font-variant-numeric:tabular-nums}
 .brand{display:flex;flex-direction:column;gap:6px}
 .brand h1{font-family:var(--display);font-weight:800;font-size:2.6rem;line-height:1;margin:0;letter-spacing:-.02em;text-wrap:balance}
 .brand h1 span{color:var(--tone)}
@@ -46,6 +50,7 @@ button,label.btn{font:inherit;color:inherit}
 .btn{display:flex;align-items:center;justify-content:center;gap:10px;min-height:52px;padding:0 18px;border-radius:14px;border:1px solid var(--line);background:var(--panel);cursor:pointer;font-weight:600;text-align:center}
 .btn.primary{background:var(--tone);color:var(--tone-ink);border-color:var(--tone);font-size:1.05rem}
 .btn.ghost{background:transparent}
+.btn.danger{background:var(--danger);border-color:var(--danger);color:#2a0f0a}
 .btn:active{transform:scale(.985)}
 .btn svg{width:20px;height:20px;flex:none}
 input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
@@ -59,6 +64,44 @@ input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events
 .tip{background:var(--panel);border-radius:14px;padding:14px;font-size:.9rem;color:var(--dim)}
 .tip b{color:var(--tone)}
 .busy{color:var(--tone);font-size:.9rem;min-height:1.4em}
+
+/* ---------- Shelf drawer ---------- */
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:30;opacity:0;transition:opacity .2s}
+.scrim.on{opacity:1}
+#drawer{position:fixed;top:0;bottom:0;left:0;width:min(88vw,400px);background:var(--panel);z-index:31;display:flex;flex-direction:column;transform:translateX(-100%);transition:transform .24s ease;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);box-shadow:8px 0 30px rgba(0,0,0,.4)}
+#drawer.on{transform:none}
+.dhead{display:flex;align-items:center;gap:8px;padding:8px 8px 8px 18px;border-bottom:1px solid var(--line)}
+.dhead h2{flex:1;margin:0;font-family:var(--display);font-weight:800;font-size:1.35rem;letter-spacing:-.01em}
+.dbody{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 12px 20px;display:flex;flex-direction:column;gap:10px}
+.empty{color:var(--dim);font-size:.9rem;padding:14px 6px;line-height:1.5}
+.item{display:grid;grid-template-columns:52px 1fr;gap:12px;padding:10px;border-radius:14px;background:var(--ink);border:1px solid var(--line)}
+.thumb{width:52px;height:74px;border-radius:6px;background:var(--line) center/cover no-repeat;border:0;padding:0;cursor:pointer;display:grid;place-items:center;color:var(--dim)}
+.thumb svg{width:22px;height:22px}
+.info{min-width:0;display:flex;flex-direction:column;gap:2px}
+.info .t{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:none;border:0;padding:0;text-align:left;cursor:pointer}
+.info .m{color:var(--dim);font-size:.8rem;font-variant-numeric:tabular-nums}
+.bar-p{height:3px;border-radius:2px;background:var(--line);margin:4px 0 6px;overflow:hidden}
+.bar-p i{display:block;height:100%;background:var(--tone)}
+.acts{display:flex;flex-wrap:wrap;gap:6px}
+.act{border:1px solid var(--line);background:transparent;border-radius:999px;padding:4px 10px;font-size:.78rem;color:var(--paper);cursor:pointer;min-height:30px}
+.act.primary{background:var(--tone);border-color:var(--tone);color:var(--tone-ink);font-weight:600}
+.act.del{color:var(--danger)}
+.sect{display:flex;align-items:center;gap:8px;margin-top:10px;padding:4px 6px;color:var(--dim);font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;font-weight:600}
+.sect::after{content:"";flex:1;height:1px;background:var(--line)}
+.vault{display:flex;align-items:center;gap:10px;padding:12px;border-radius:14px;border:1px dashed var(--line);color:var(--dim);font-size:.88rem}
+.vault svg{width:20px;height:20px;flex:none;color:var(--tone)}
+.vault span{flex:1;min-width:0}
+.dfoot{border-top:1px solid var(--line);padding:10px 18px 12px;color:var(--dim);font-size:.78rem;line-height:1.45}
+
+/* ---------- Dialog ---------- */
+.dlg-wrap{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.6);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.dlg{width:100%;max-width:360px;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:14px}
+.dlg h3{margin:0;font-family:var(--display);font-size:1.2rem;font-weight:800}
+.dlg p{margin:0;color:var(--dim);font-size:.9rem}
+.dlg input{width:100%;min-height:48px;border-radius:12px;border:1px solid var(--line);background:var(--ink);padding:0 14px;font-size:16px}
+.dlg .err{color:var(--danger);font-size:.85rem;min-height:1.2em;margin-top:-6px}
+.dlg .row2{display:flex;gap:10px}
+.dlg .row2 .btn{flex:1;min-height:46px}
 
 /* ---------- Reader ---------- */
 #reader{position:fixed;inset:0;background:#000;z-index:5}
@@ -90,13 +133,19 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--tone);height:28px}
 .chip[aria-pressed=true]{color:var(--tone);border-color:var(--tone)}
 .progress{position:absolute;left:0;bottom:0;height:3px;background:var(--tone);z-index:4;transition:width .2s;pointer-events:none}
 #reader:not(.hide-ui) .progress{opacity:0}
-.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 110px);transform:translateX(-50%);background:var(--paper);color:var(--ink);padding:10px 16px;border-radius:999px;font-weight:600;font-size:.88rem;z-index:20;max-width:calc(100% - 32px);text-align:center}
-@media (prefers-reduced-motion:reduce){.bar,.progress{transition:none}}
+.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 110px);transform:translateX(-50%);background:var(--paper);color:var(--ink);padding:10px 16px;border-radius:999px;font-weight:600;font-size:.88rem;z-index:60;max-width:calc(100% - 32px);text-align:center}
+@media (prefers-reduced-motion:reduce){.bar,.progress,#drawer,.scrim{transition:none}}
 </style>
 </head>
 <body>
 <main id="home">
   <div class="col">
+    <div class="topline">
+      <button class="ib menu" id="menuBtn" type="button" aria-label="Mở kệ truyện đã lưu" aria-controls="drawer" aria-expanded="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+        <span class="badge" id="badge" hidden></span>
+      </button>
+    </div>
     <header class="brand">
       <h1>Kệ <span>Truyện</span></h1>
       <p>Mở cả folder ảnh truyện trong app Files rồi lướt từng trang, xếp đúng thứ tự 1, 2, 3 … 10, 11.</p>
@@ -130,13 +179,25 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--tone);height:28px}
   </div>
 </main>
 
+<div class="scrim" id="scrim" hidden></div>
+<aside id="drawer" aria-label="Kệ truyện đã lưu" hidden>
+  <div class="dhead">
+    <h2>Kệ của bạn</h2>
+    <button class="ib" id="closeDrawer" type="button" aria-label="Đóng">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+  <div class="dbody" id="shelfList"></div>
+  <div class="dfoot" id="shelfFoot"></div>
+</aside>
+
 <section id="reader" hidden>
   <div id="scroller"><div class="strip" id="strip"></div></div>
   <div id="stage" hidden><img id="pageImg" alt=""></div>
   <div class="progress" id="prog"></div>
 
   <div class="bar top">
-    <button class="ib" id="back" type="button" aria-label="Về kệ truyện">
+    <button class="ib" id="back" type="button" aria-label="Về trang chủ">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
     </button>
     <div class="ttl" id="ttl"></div>
@@ -164,15 +225,18 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--tone);height:28px}
   const IMG_RE = /\.(jpe?g|png|gif|webp|avif|heic|heif|bmp)$/i;
   const ZIP_RE = /\.(zip|cbz)$/i;
   const collator = new Intl.Collator('vi', { numeric: true, sensitivity: 'base' });
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const fmtSize = b => b >= 1e9 ? (b / 1e9).toFixed(1) + ' GB' : b >= 1e6 ? Math.round(b / 1e6) + ' MB' : Math.max(1, Math.round(b / 1e3)) + ' KB';
 
   const store = {
     get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } },
-    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+    del(k) { try { localStorage.removeItem(k); } catch {} }
   };
   const prefs = Object.assign({ mode: 'scroll', rtl: false, gap: false }, store.get('kt:prefs', {}));
   const savePrefs = () => store.set('kt:prefs', prefs);
 
-  let book = null;          // { id, title, pages: [{name,url}] }
+  let book = null;          // { title, pages: [{name,url}], posKey, secret, shelfId }
   let index = 0;
   let io = null;
   let wakeLock = null;
@@ -181,11 +245,388 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--tone);height:28px}
   if (!isIOS && 'webkitdirectory' in document.createElement('input')) $('dirBtn').hidden = false;
 
   function toast(msg) {
-    const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg;
-    document.body.append(t); setTimeout(() => t.remove(), 2600);
+    const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; t.setAttribute('role', 'status');
+    document.body.append(t); setTimeout(() => t.remove(), 2800);
   }
   function busy(msg) { $('busy').textContent = msg || ''; }
+  function hash(s) { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return (h >>> 0).toString(36); }
 
+  /* =====================================================================
+     Storage: IndexedDB keeps a copy of each opened .zip / image set.
+     meta  {id, sigh, hidden, size, addedAt, ...public fields | sealed}
+     data  {files:[{name, blob}]}  or, when hidden, {files:[{e: encrypted}]}
+     kv    'lock' -> {salt, check}
+     ===================================================================== */
+  const DB = (() => {
+    let p;
+    const open = () => p || (p = new Promise((res, rej) => {
+      const r = indexedDB.open('ke-truyen', 1);
+      r.onupgradeneeded = () => { const d = r.result; d.createObjectStore('meta', { keyPath: 'id' }); d.createObjectStore('data'); d.createObjectStore('kv'); };
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => { p = null; rej(r.error); };
+    }));
+    const run = (stores, mode, fn) => open().then(db => new Promise((res, rej) => {
+      const t = db.transaction(stores, mode);
+      let out;
+      const reqs = fn(...[].concat(stores).map(s => t.objectStore(s)));
+      t.oncomplete = () => res(Array.isArray(reqs) ? reqs.map(r => r && r.result) : reqs && reqs.result);
+      t.onerror = () => rej(t.error); t.onabort = () => rej(t.error || new Error('abort'));
+    }));
+    return {
+      get: (s, k) => run(s, 'readonly', st => st.get(k)),
+      all: s => run(s, 'readonly', st => st.getAll()),
+      put: (s, v, k) => run(s, 'readwrite', st => k === undefined ? st.put(v) : st.put(v, k)),
+      putBook: (meta, data) => run(['meta', 'data'], 'readwrite', (m, d) => [m.put(meta), d.put(data, meta.id)]),
+      delBook: id => run(['meta', 'data'], 'readwrite', (m, d) => [m.delete(id), d.delete(id)]),
+    };
+  })();
+
+  /* Crypto for hidden books: PBKDF2 -> AES-GCM, data encrypted in 4 MB chunks. */
+  const te = new TextEncoder(), td = new TextDecoder();
+  const CHUNK = 4 << 20;
+  let vaultKey = null;
+  async function deriveKey(pw, salt) {
+    const base = await crypto.subtle.importKey('raw', te.encode(pw), 'PBKDF2', false, ['deriveKey']);
+    return crypto.subtle.deriveKey({ name: 'PBKDF2', salt, iterations: 250000, hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+  }
+  async function encBuf(key, buf) { const iv = crypto.getRandomValues(new Uint8Array(12)); return { iv, data: await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, buf) }; }
+  const decBuf = (key, e) => crypto.subtle.decrypt({ name: 'AES-GCM', iv: e.iv }, key, e.data);
+  const encJSON = (key, o) => encBuf(key, te.encode(JSON.stringify(o)));
+  const decJSON = async (key, e) => JSON.parse(td.decode(await decBuf(key, e)));
+  async function encBlob(key, blob) {
+    const chunks = [];
+    for (let o = 0; o < blob.size; o += CHUNK) chunks.push(await encBuf(key, await blob.slice(o, o + CHUNK).arrayBuffer()));
+    return { type: blob.type, chunks };
+  }
+  async function decBlob(key, e) {
+    const parts = [];
+    for (const c of e.chunks) parts.push(await decBuf(key, c));
+    return new Blob(parts, { type: e.type });
+  }
+
+  /* Shelf state in memory */
+  let shelf = [];        // public metas
+  let secretShelf = [];  // decrypted hidden metas (only while unlocked)
+  let lockInfo = null;
+
+  async function loadShelf() {
+    try {
+      const metas = await DB.all('meta');
+      lockInfo = await DB.get('kv', 'lock');
+      shelf = metas.filter(m => !m.hidden).sort((a, b) => (b.openedAt || 0) - (a.openedAt || 0));
+      if (vaultKey) {
+        const hidden = metas.filter(m => m.hidden);
+        secretShelf = [];
+        for (const m of hidden) { try { secretShelf.push(Object.assign({}, m, await decJSON(vaultKey, m.sealed))); } catch {} }
+        secretShelf.sort((a, b) => (b.openedAt || 0) - (a.openedAt || 0));
+      }
+    } catch { shelf = []; }
+    const n = shelf.length;
+    $('badge').hidden = !n; $('badge').textContent = n;
+    if (!$('drawer').hidden) renderShelf();
+  }
+
+  async function findBySig(sigh) {
+    try { return (await DB.all('meta')).find(m => m.sigh === sigh) || null; } catch { return null; }
+  }
+
+  function makeThumb(url) {
+    return new Promise(res => {
+      const im = new Image();
+      im.onload = () => {
+        try {
+          const w = 120, h = Math.round(w * Math.min(1.6, im.naturalHeight / im.naturalWidth || 1.4));
+          const c = document.createElement('canvas'); c.width = w; c.height = h;
+          c.getContext('2d').drawImage(im, 0, 0, w, h);
+          res(c.toDataURL('image/jpeg', .7));
+        } catch { res(''); }
+      };
+      im.onerror = () => res('');
+      im.src = url;
+    });
+  }
+
+  /* Keep a copy of what was just opened. */
+  async function saveToShelf({ title, sig, kind, files, count, firstUrl }) {
+    const sigh = hash(sig);
+    const size = files.reduce((s, f) => s + f.blob.size, 0);
+    try {
+      const existing = await findBySig(sigh);
+      if (existing) { await touch(existing); return existing.id; }
+      if (navigator.storage && navigator.storage.estimate) {
+        const { usage = 0, quota = 0 } = await navigator.storage.estimate();
+        if (quota && usage + size > quota * 0.95) { toast('Máy không đủ chỗ để lưu truyện này vào kệ.'); return null; }
+      }
+      if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+      const thumb = firstUrl ? await makeThumb(firstUrl) : '';
+      const meta = { id: 'b' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), sigh, hidden: false, size, addedAt: Date.now(), openedAt: Date.now(), title, sig, kind, count, thumb };
+      await DB.putBook(meta, { files: files.map(f => ({ name: f.name, blob: f.blob })) });
+      await loadShelf();
+      toast('Đã lưu vào kệ. Lần sau mở từ menu ☰.');
+      return meta.id;
+    } catch (e) {
+      toast(e && e.name === 'QuotaExceededError' ? 'Máy không đủ chỗ để lưu truyện này vào kệ.' : 'Không lưu được truyện vào kệ.');
+      return null;
+    }
+  }
+
+  async function touch(meta) {
+    try {
+      const raw = await DB.get('meta', meta.id);
+      if (!raw) return;
+      if (raw.hidden) {
+        if (!vaultKey) return;
+        const pub = await decJSON(vaultKey, raw.sealed);
+        pub.openedAt = Date.now();
+        raw.sealed = await encJSON(vaultKey, pub);
+      } else raw.openedAt = Date.now();
+      await DB.put('meta', raw);
+      await loadShelf();
+    } catch {}
+  }
+
+  async function loadFiles(meta) {
+    const data = await DB.get('data', meta.id);
+    if (!data) throw new Error('missing');
+    if (!meta.hidden) return data.files;
+    const out = [];
+    for (let i = 0; i < data.files.length; i++) out.push({ name: meta.names[i], blob: await decBlob(vaultKey, data.files[i].e) });
+    return out;
+  }
+
+  async function openFromShelf(meta) {
+    closeDrawer();
+    try {
+      busy('Đang mở ' + meta.title + '…');
+      const files = await loadFiles(meta);
+      const opts = { sig: meta.sig, secret: meta.hidden, save: false, shelfId: meta.id };
+      if (meta.kind === 'zip') await openZip(files[0].blob, meta.title, opts);
+      else { busy(); openBook(meta.title, files.map(f => ({ name: f.name, url: URL.createObjectURL(f.blob) })), opts); }
+      touch(meta);
+    } catch {
+      busy();
+      toast('Không đọc được bản lưu này. Hãy xoá và mở lại file gốc.');
+    }
+  }
+
+  async function deleteBook(meta) {
+    const ok = await dialog({ title: 'Xoá khỏi kệ?', body: `“${meta.title}” sẽ bị xoá khỏi trang này. File gốc trong app Files không bị ảnh hưởng.`, okText: 'Xoá', danger: true });
+    if (!ok) return;
+    await DB.delBook(meta.id);
+    store.del(posKeyFor(meta.sig, meta.count));
+    await loadShelf();
+    toast('Đã xoá khỏi kệ.');
+  }
+
+  async function exportBook(meta) {
+    let files;
+    try { busy(); files = (await loadFiles(meta)).map(f => new File([f.blob], f.name.split('/').pop(), { type: f.blob.type || 'application/octet-stream' })); }
+    catch { toast('Không đọc được bản lưu này.'); return; }
+    const total = files.reduce((s, f) => s + f.size, 0);
+    const canShare = navigator.canShare && navigator.canShare({ files });
+    await dialog({
+      title: 'Lưu ra app Files',
+      body: (files.length === 1 ? files[0].name : `${files.length} ảnh`) + ' · ' + fmtSize(total) + '. ' +
+        (canShare ? 'Bấm Chia sẻ rồi chọn “Lưu vào Tệp” để chọn folder lưu.' : 'Trình duyệt này sẽ tải file về thư mục Tải về.') +
+        ' Trang web không mở được vị trí của file gốc, vì iPhone không cho web biết đường dẫn file.',
+      okText: canShare ? 'Chia sẻ' : 'Tải về',
+      onOk() {
+        if (canShare) navigator.share({ files, title: meta.title }).catch(() => {});
+        else files.forEach(f => { const a = document.createElement('a'); a.href = URL.createObjectURL(f); a.download = f.name; document.body.append(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000); });
+      }
+    });
+  }
+
+  /* ---------- Hidden books ---------- */
+  async function ensurePassword() {
+    if (vaultKey) return true;
+    lockInfo = await DB.get('kv', 'lock');
+    if (!lockInfo) {
+      const v = await dialog({
+        title: 'Đặt mật khẩu cho truyện ẩn',
+        body: 'Truyện ẩn được mã hoá bằng mật khẩu này. Nếu quên mật khẩu thì không mở lại được truyện ẩn.',
+        fields: [{ id: 'pw1', type: 'password', placeholder: 'Mật khẩu (ít nhất 4 ký tự)', autocomplete: 'new-password' }, { id: 'pw2', type: 'password', placeholder: 'Nhập lại mật khẩu', autocomplete: 'new-password' }],
+        okText: 'Đặt mật khẩu',
+        async validate(f) {
+          if (f.pw1.length < 4) return 'Mật khẩu cần ít nhất 4 ký tự.';
+          if (f.pw1 !== f.pw2) return 'Hai lần nhập chưa khớp.';
+          const salt = crypto.getRandomValues(new Uint8Array(16));
+          const key = await deriveKey(f.pw1, salt);
+          const check = await encJSON(key, 'ke-truyen-ok');
+          await DB.put('kv', { salt, check }, 'lock');
+          lockInfo = { salt, check }; vaultKey = key;
+          return null;
+        }
+      });
+      return !!v;
+    }
+    const v = await dialog({
+      title: 'Mở truyện ẩn',
+      body: 'Nhập mật khẩu bạn đã đặt.',
+      fields: [{ id: 'pw', type: 'password', placeholder: 'Mật khẩu', autocomplete: 'current-password' }],
+      okText: 'Mở khoá',
+      async validate(f) {
+        try {
+          const key = await deriveKey(f.pw, lockInfo.salt);
+          if (await decJSON(key, lockInfo.check) !== 'ke-truyen-ok') throw 0;
+          vaultKey = key; return null;
+        } catch { return 'Sai mật khẩu.'; }
+      }
+    });
+    if (v) await loadShelf();
+    return !!v;
+  }
+
+  async function hideBook(meta) {
+    if (!(await ensurePassword())) return;
+    try {
+      busy('Đang mã hoá…');
+      const data = await DB.get('data', meta.id);
+      const names = data.files.map(f => f.name);
+      const encFiles = [];
+      for (const f of data.files) encFiles.push({ e: await encBlob(vaultKey, f.blob) });
+      const pub = { title: meta.title, sig: meta.sig, kind: meta.kind, count: meta.count, thumb: meta.thumb, openedAt: meta.openedAt, names };
+      const sealedMeta = { id: meta.id, sigh: meta.sigh, hidden: true, size: meta.size, addedAt: meta.addedAt, sealed: await encJSON(vaultKey, pub) };
+      await DB.putBook(sealedMeta, { files: encFiles });
+      // drop clear-text traces
+      const last = store.get('kt:last', null);
+      if (last && last.title === meta.title) store.del('kt:last');
+      busy(); await loadShelf(); showResume();
+      toast('Đã ẩn. Mở lại trong mục Truyện ẩn.');
+    } catch { busy(); toast('Không ẩn được truyện này.'); }
+  }
+
+  async function unhideBook(meta) {
+    try {
+      busy('Đang giải mã…');
+      const files = await loadFiles(meta);
+      const pub = { id: meta.id, sigh: meta.sigh, hidden: false, size: meta.size, addedAt: meta.addedAt, openedAt: meta.openedAt, title: meta.title, sig: meta.sig, kind: meta.kind, count: meta.count, thumb: meta.thumb };
+      await DB.putBook(pub, { files });
+      busy(); await loadShelf();
+      toast('Đã bỏ ẩn.');
+    } catch { busy(); toast('Không bỏ ẩn được truyện này.'); }
+  }
+
+  /* ---------- Drawer UI ---------- */
+  const ICON_LOCK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+  const ICON_BOOK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5a2 2 0 0 1 2-2h12v16H6a2 2 0 0 0-2 2z"/><path d="M4 19V5"/></svg>';
+
+  function itemHTML(m, i, secret) {
+    const pos = store.get(posKeyFor(m.sig, m.count), 0);
+    const pct = m.count ? Math.round((pos + 1) / m.count * 100) : 0;
+    const where = pos > 0 ? `Đọc tới trang ${pos + 1}` : 'Chưa đọc';
+    const thumb = m.thumb ? ` style="background-image:url('${m.thumb}')"` : '';
+    const g = secret ? 's' : 'p';
+    return `<div class="item">
+      <button class="thumb" data-a="open" data-g="${g}" data-i="${i}"${thumb} aria-label="Mở ${esc(m.title)}">${m.thumb ? '' : ICON_BOOK}</button>
+      <div class="info">
+        <button class="t" data-a="open" data-g="${g}" data-i="${i}">${esc(m.title)}</button>
+        <div class="m">${m.count} trang · ${fmtSize(m.size)} · ${where}</div>
+        <div class="bar-p"><i style="width:${pos > 0 ? pct : 0}%"></i></div>
+        <div class="acts">
+          <button class="act primary" data-a="open" data-g="${g}" data-i="${i}">Đọc</button>
+          <button class="act" data-a="export" data-g="${g}" data-i="${i}">Lưu ra Files</button>
+          <button class="act" data-a="${secret ? 'unhide' : 'hide'}" data-g="${g}" data-i="${i}">${secret ? 'Bỏ ẩn' : 'Ẩn'}</button>
+          <button class="act del" data-a="del" data-g="${g}" data-i="${i}">Xoá</button>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  async function renderShelf() {
+    const list = $('shelfList');
+    let html = '';
+    if (!shelf.length) html += `<div class="empty">Chưa có truyện nào. Mở một file .zip hoặc chọn ảnh ở trang chủ, truyện sẽ tự được lưu vào đây để lần sau bấm vào là đọc tiếp.</div>`;
+    else html += shelf.map((m, i) => itemHTML(m, i, false)).join('');
+    html += `<div class="sect">Truyện ẩn</div>`;
+    if (!vaultKey) {
+      html += `<div class="vault">${ICON_LOCK}<span>${lockInfo ? 'Đã khoá. Nhập mật khẩu để xem truyện ẩn.' : 'Bấm “Ẩn” ở một truyện để đặt mật khẩu và giấu nó vào đây.'}</span>${lockInfo ? '<button class="act primary" data-a="unlock">Mở khoá</button>' : ''}</div>`;
+    } else {
+      html += secretShelf.length ? secretShelf.map((m, i) => itemHTML(m, i, true)).join('') : `<div class="empty">Chưa có truyện ẩn nào.</div>`;
+      html += `<div class="vault">${ICON_LOCK}<span>Đang mở khoá. Đóng trang hoặc bấm Khoá để giấu lại.</span><button class="act" data-a="lock">Khoá</button></div>`;
+    }
+    list.innerHTML = html;
+    let foot = 'Bản lưu nằm trong bộ nhớ của trình duyệt trên máy này, không tải lên đâu cả.';
+    try {
+      if (navigator.storage && navigator.storage.estimate) {
+        const { usage = 0 } = await navigator.storage.estimate();
+        foot = `Đang dùng ${fmtSize(usage)} trên máy. ` + foot;
+      }
+    } catch {}
+    if (isIOS && !navigator.standalone) foot += ' Mẹo: thêm trang ra màn hình chính để iPhone không tự xoá kệ khi lâu không mở.';
+    $('shelfFoot').textContent = foot;
+  }
+
+  $('shelfList').addEventListener('click', async e => {
+    const b = e.target.closest('[data-a]'); if (!b) return;
+    const a = b.dataset.a;
+    if (a === 'unlock') { await ensurePassword(); return; }
+    if (a === 'lock') { vaultKey = null; secretShelf = []; renderShelf(); return; }
+    const meta = (b.dataset.g === 's' ? secretShelf : shelf)[+b.dataset.i];
+    if (!meta) return;
+    if (a === 'open') openFromShelf(meta);
+    else if (a === 'del') deleteBook(meta);
+    else if (a === 'export') exportBook(meta);
+    else if (a === 'hide') hideBook(meta);
+    else if (a === 'unhide') unhideBook(meta);
+  });
+
+  let lastFocus = null;
+  function openDrawer() {
+    lastFocus = document.activeElement;
+    $('scrim').hidden = false; $('drawer').hidden = false;
+    renderShelf();
+    requestAnimationFrame(() => { $('scrim').classList.add('on'); $('drawer').classList.add('on'); $('closeDrawer').focus(); });
+    $('menuBtn').setAttribute('aria-expanded', 'true');
+  }
+  function closeDrawer() {
+    if ($('drawer').hidden) return;
+    $('scrim').classList.remove('on'); $('drawer').classList.remove('on');
+    $('menuBtn').setAttribute('aria-expanded', 'false');
+    setTimeout(() => { $('scrim').hidden = true; $('drawer').hidden = true; }, 240);
+    if (lastFocus && lastFocus.focus) lastFocus.focus();
+  }
+  $('menuBtn').addEventListener('click', openDrawer);
+  $('closeDrawer').addEventListener('click', closeDrawer);
+  $('scrim').addEventListener('click', closeDrawer);
+  let dx0 = null;
+  $('drawer').addEventListener('touchstart', e => { dx0 = e.touches[0].clientX; }, { passive: true });
+  $('drawer').addEventListener('touchend', e => { if (dx0 != null && dx0 - e.changedTouches[0].clientX > 70) closeDrawer(); dx0 = null; }, { passive: true });
+
+  /* ---------- Dialog ---------- */
+  function dialog({ title, body, fields = [], okText = 'OK', danger = false, validate, onOk }) {
+    return new Promise(resolve => {
+      const wrap = document.createElement('div'); wrap.className = 'dlg-wrap';
+      wrap.innerHTML = `<form class="dlg" role="dialog" aria-modal="true" aria-labelledby="dlgT">
+        <h3 id="dlgT">${esc(title)}</h3>${body ? `<p>${esc(body)}</p>` : ''}
+        ${fields.map(f => `<input id="dlg-${f.id}" name="${f.id}" type="${f.type || 'text'}" placeholder="${esc(f.placeholder || '')}" autocomplete="${f.autocomplete || 'off'}">`).join('')}
+        ${fields.length ? '<div class="err" aria-live="polite"></div>' : ''}
+        <div class="row2"><button type="button" class="btn ghost" data-x>Huỷ</button><button type="submit" class="btn ${danger ? 'danger' : 'primary'}">${esc(okText)}</button></div>
+      </form>`;
+      document.body.append(wrap);
+      const form = wrap.querySelector('form');
+      const done = v => { wrap.remove(); document.removeEventListener('keydown', onKey, true); resolve(v); };
+      const onKey = ev => { if (ev.key === 'Escape') { ev.stopPropagation(); done(null); } };
+      document.addEventListener('keydown', onKey, true);
+      wrap.querySelector('[data-x]').onclick = () => done(null);
+      wrap.addEventListener('click', ev => { if (ev.target === wrap) done(null); });
+      const first = form.querySelector('input') || form.querySelector('[type=submit]');
+      setTimeout(() => first.focus(), 30);
+      form.addEventListener('submit', async ev => {
+        ev.preventDefault();
+        const vals = {}; fields.forEach(f => vals[f.id] = form.elements[f.id].value);
+        if (onOk) onOk(vals);   // runs inside the tap, so Share is allowed
+        if (validate) {
+          const btn = form.querySelector('[type=submit]'); btn.disabled = true;
+          const err = await validate(vals); btn.disabled = false;
+          if (err) { form.querySelector('.err').textContent = err; return; }
+        }
+        done(vals);
+      });
+    });
+  }
+
+  /* ---------- Home resume line ---------- */
   function showResume() {
     const last = store.get('kt:last', null);
     const el = $('resume');
@@ -194,22 +635,27 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--tone);height:28px}
     el.innerHTML = '';
     el.append('Lần trước: ');
     const b = document.createElement('b'); b.textContent = last.title; el.append(b);
-    el.append(` · trang ${last.page}/${last.total}. Mở lại đúng bộ ảnh đó là đọc tiếp từ trang này.`);
+    el.append(` · trang ${last.page}/${last.total}. Mở lại từ menu ☰ hoặc chọn lại đúng bộ ảnh đó để đọc tiếp.`);
   }
   showResume();
+  loadShelf();
 
   /* ---------- Loading sources ---------- */
   async function handleFiles(list) {
     const files = [...list];
     if (!files.length) return;
     const zips = files.filter(f => ZIP_RE.test(f.name));
-    if (zips.length === 1 && files.length === 1) return openZip(zips[0]);
+    if (zips.length === 1 && files.length === 1) return openZip(zips[0], zips[0].name.replace(ZIP_RE, ''), { sig: zips[0].name + ':' + zips[0].size, save: true });
     const imgs = files.filter(f => (f.type && f.type.startsWith('image/')) || IMG_RE.test(f.name));
     if (!imgs.length) { toast('Không thấy ảnh nào trong những file đã chọn.'); return; }
-    const pages = imgs.map(f => ({ name: f.webkitRelativePath || f.name, url: URL.createObjectURL(f) }));
+    const named = imgs.map(f => ({ name: f.webkitRelativePath || f.name, blob: f }));
+    const pages = named.map(f => ({ name: f.name, url: URL.createObjectURL(f.blob) }));
     const rel = imgs[0].webkitRelativePath;
     const title = rel ? rel.split('/')[0] : `${imgs.length} ảnh`;
-    openBook(title, pages, imgs.map(f => f.name + ':' + f.size).sort().join('|'));
+    const sig = imgs.map(f => f.name + ':' + f.size).sort().join('|');
+    openBook(title, pages, { sig });
+    const first = pages[0];
+    saveToShelf({ title, sig, kind: 'images', files: named, count: pages.length, firstUrl: first && first.url });
   }
 
   function loadJSZip() {
@@ -222,22 +668,23 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--tone);height:28px}
     });
   }
 
-  async function openZip(file) {
+  async function openZip(blob, title, opts) {
     try {
-      busy('Đang mở ' + file.name + '…');
+      busy('Đang mở ' + title + '…');
       const JSZip = await loadJSZip();
-      const zip = await JSZip.loadAsync(file);
+      const zip = await JSZip.loadAsync(blob);
       const entries = Object.values(zip.files).filter(e => !e.dir && IMG_RE.test(e.name) && !/(^|\/)(__MACOSX|\.)/.test(e.name));
       if (!entries.length) { busy(); toast('File nén này không có ảnh.'); return; }
       entries.sort((a, b) => collator.compare(a.name, b.name));
       const pages = [];
       for (let i = 0; i < entries.length; i++) {
         busy(`Đang giải nén ${i + 1}/${entries.length}…`);
-        const blob = await entries[i].async('blob');
-        pages.push({ name: entries[i].name, url: URL.createObjectURL(blob) });
+        const b = await entries[i].async('blob');
+        pages.push({ name: entries[i].name, url: URL.createObjectURL(b) });
       }
       busy();
-      openBook(file.name.replace(ZIP_RE, ''), pages, file.name + ':' + file.size);
+      openBook(title, pages, opts);
+      if (opts.save) saveToShelf({ title, sig: opts.sig, kind: 'zip', files: [{ name: (blob.name || title + '.zip'), blob }], count: pages.length, firstUrl: pages[0].url });
     } catch (e) {
       busy();
       toast('Không mở được file nén. Thử nén lại folder trong Files.');
@@ -264,20 +711,21 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--tone);height:28px}
       });
       g.fillStyle = '#111'; g.font = '800 150px system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
       g.fillText(String(p), W / 2, H / 2);
-      g.font = '600 28px system-ui, sans-serif'; g.fillText(`TRUYỆN MẪU · ${p}.jpg`, W / 2, H - 14 - 14);
+      g.font = '600 28px system-ui, sans-serif'; g.fillText(`TRUYỆN MẪU · ${p}.jpg`, W / 2, H - 28);
       const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', .85));
       pages.push({ name: `${p}.jpg`, url: URL.createObjectURL(blob) });
     }
-    // shuffle to prove natural sort
-    pages.sort(() => Math.random() - .5);
-    openBook('Truyện mẫu', pages, 'demo');
+    pages.sort(() => Math.random() - .5);   // shuffled on purpose: shows the natural sort
+    openBook('Truyện mẫu', pages, { sig: 'demo' });
   }
 
   /* ---------- Reader ---------- */
-  function openBook(title, pages, sig) {
+  const posKeyFor = (sig, n) => 'kt:pos:' + hash(sig || '') + ':' + n;
+
+  function openBook(title, pages, opts = {}) {
     pages.sort((a, b) => collator.compare(a.name, b.name));
-    book = { title, pages, id: 'kt:pos:' + title + ':' + pages.length + ':' + hash(sig || '') };
-    const saved = store.get(book.id, 0);
+    book = { title, pages, posKey: posKeyFor(opts.sig, pages.length), secret: !!opts.secret };
+    const saved = store.get(book.posKey, 0);
     index = Math.min(Math.max(0, saved), pages.length - 1);
     $('ttl').textContent = title;
     $('slider').max = pages.length;
@@ -285,7 +733,7 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--tone);height:28px}
     $('reader').hidden = false;
     $('reader').classList.remove('hide-ui');
     document.documentElement.style.overflow = 'hidden';
-    applyMode(true);
+    applyMode();
     keepAwake();
     if (index > 0) toast(`Đọc tiếp từ trang ${index + 1}`);
   }
@@ -304,8 +752,6 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--tone);height:28px}
     showResume();
   }
 
-  function hash(s) { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return (h >>> 0).toString(36); }
-
   let saveT = 0;
   function setIndex(i, fromScroll) {
     index = Math.min(Math.max(0, i), book.pages.length - 1);
@@ -316,12 +762,12 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--tone);height:28px}
     clearTimeout(saveT);
     saveT = setTimeout(() => {
       if (!book) return;
-      store.set(book.id, index);
-      store.set('kt:last', { title: book.title, page: index + 1, total: n });
+      store.set(book.posKey, index);
+      if (!book.secret) store.set('kt:last', { title: book.title, page: index + 1, total: n });
     }, 400);
   }
 
-  function applyMode(first) {
+  function applyMode() {
     $('mScroll').setAttribute('aria-pressed', prefs.mode === 'scroll');
     $('mPage').setAttribute('aria-pressed', prefs.mode === 'page');
     $('rtlBtn').setAttribute('aria-pressed', prefs.rtl);
@@ -373,6 +819,7 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--tone);height:28px}
     if (ticking || !book) return; ticking = true;
     requestAnimationFrame(() => {
       ticking = false;
+      if (!book) return;
       const sc = $('scroller'), y = sc.scrollTop, probe = y + sc.clientHeight * 0.35;
       let lo = 0, hi = imgs.length - 1;
       while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (imgs[mid].offsetTop <= probe) lo = mid; else hi = mid - 1; }
@@ -400,6 +847,7 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--tone);height:28px}
     else { $('scroller').scrollTop = imgs[ni].offsetTop; }
   }
   const stage = $('stage');
+  let tx = 0, ty = 0, swiped = false;
   stage.addEventListener('click', e => {
     if (swiped) { swiped = false; return; }
     const x = e.clientX / stage.clientWidth;
@@ -408,7 +856,6 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--tone);height:28px}
     step((forward !== prefs.rtl) ? 1 : -1);
     $('reader').classList.add('hide-ui');
   });
-  let tx = 0, ty = 0, swiped = false;
   stage.addEventListener('touchstart', e => { if (e.touches.length === 1) { tx = e.touches[0].clientX; ty = e.touches[0].clientY; } }, { passive: true });
   stage.addEventListener('touchend', e => {
     if (e.changedTouches.length !== 1 || (window.visualViewport && visualViewport.scale > 1.05)) return;
@@ -435,6 +882,7 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--tone);height:28px}
     if (prefs.mode === 'page') showPage(i); else { index = i; $('scroller').scrollTop = imgs[i].offsetTop; setIndex(i); }
   });
   document.addEventListener('keydown', e => {
+    if (!$('drawer').hidden && e.key === 'Escape') { closeDrawer(); return; }
     if (!book) return;
     if (e.key === 'ArrowRight' || e.key === 'PageDown' || (e.key === ' ' && prefs.mode === 'page')) { e.preventDefault(); step(prefs.rtl && e.key === 'ArrowRight' ? -1 : 1); }
     else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); step(prefs.rtl && e.key === 'ArrowLeft' ? 1 : -1); }

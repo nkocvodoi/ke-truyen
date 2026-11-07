@@ -11,6 +11,10 @@ Chỉ có một file `index.html`, không cần build và không có backend. �
 - Hai kiểu đọc: **Cuộn dọc** (webtoon) và **Lật trang** (chạm cạnh hoặc vuốt). Có tùy chọn lật kiểu manga, từ phải sang trái.
 - Thanh trượt để nhảy trang, nhớ trang đang đọc (lưu trong `localStorage`), giữ màn hình sáng khi đọc (Wake Lock).
 - Có truyện mẫu để thử ngay.
+- **Kệ truyện (menu ☰):** mỗi file .zip hoặc bộ ảnh đã mở được lưu một bản sao trong IndexedDB. Lần sau bấm vào là đọc tiếp, không cần chọn lại file. Mỗi truyện có các nút Đọc, Lưu ra Files (qua bảng Chia sẻ), Ẩn và Xoá.
+- **Truyện ẩn:** truyện ẩn được mã hoá AES-GCM bằng khoá tạo từ mật khẩu của bạn (PBKDF2), cả tên lẫn ảnh. Nếu quên mật khẩu thì không mở lại được truyện ẩn.
+
+Lưu ý: trang web không đọc được đường dẫn file gốc trong Files (iOS không cho phép), nên kệ lưu một bản sao. Bản sao này chiếm thêm dung lượng máy. Safari có thể tự xoá dữ liệu của trang nếu lâu không mở. Thêm trang ra màn hình chính thì sẽ không bị xoá.
 
 ## Dùng trên iPhone
 
