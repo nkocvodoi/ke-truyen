@@ -1,0 +1,451 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Kệ Truyện">
+<meta name="theme-color" content="#111214">
+<title>Kệ Truyện</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Be+Vietnam+Pro:wght@400;500;600&display=swap">
+<style>
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0}
+img{max-width:100%}
+[hidden]{display:none!important}
+/* Layout: one-screen app. Home = shelf card centred in a narrow column; Reader = full-bleed stage with floating top/bottom bars. Single dark look (reading in bed), chosen on purpose. */
+:root{
+  --ink:#111214;       /* page ground */
+  --panel:#1b1d21;     /* bars, cards */
+  --line:#2c2f35;
+  --paper:#ece9e2;     /* text */
+  --dim:#9a9ca3;
+  --tone:#8fc7c2;      /* screentone teal accent */
+  --tone-ink:#0d2624;
+  --display:"Bricolage Grotesque",ui-rounded,system-ui,sans-serif;
+  --body:"Be Vietnam Pro",system-ui,-apple-system,sans-serif;
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{background:var(--ink);color:var(--paper);font-family:var(--body);font-size:15px;line-height:1.55;-webkit-tap-highlight-color:transparent}
+button,label.btn{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--tone);outline-offset:2px}
+
+/* ---------- Home ---------- */
+#home{min-height:100%;display:flex;justify-content:center;padding-top:calc(env(safe-area-inset-top,0px) + 40px);padding-bottom:calc(env(safe-area-inset-bottom,0px) + 56px);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.col{width:100%;max-width:480px;display:flex;flex-direction:column;gap:28px}
+.brand{display:flex;flex-direction:column;gap:6px}
+.brand h1{font-family:var(--display);font-weight:800;font-size:2.6rem;line-height:1;margin:0;letter-spacing:-.02em;text-wrap:balance}
+.brand h1 span{color:var(--tone)}
+.brand p{margin:0;color:var(--dim);max-width:36ch}
+.actions{display:flex;flex-direction:column;gap:10px}
+.btn{display:flex;align-items:center;justify-content:center;gap:10px;min-height:52px;padding:0 18px;border-radius:14px;border:1px solid var(--line);background:var(--panel);cursor:pointer;font-weight:600;text-align:center}
+.btn.primary{background:var(--tone);color:var(--tone-ink);border-color:var(--tone);font-size:1.05rem}
+.btn.ghost{background:transparent}
+.btn:active{transform:scale(.985)}
+.btn svg{width:20px;height:20px;flex:none}
+input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.resume{border:1px dashed var(--line);border-radius:14px;padding:12px 14px;color:var(--dim);font-size:.9rem}
+.resume b{color:var(--paper);font-weight:600}
+.howto h2{font-family:var(--display);font-weight:600;font-size:1.05rem;margin:0 0 10px;letter-spacing:.01em}
+.howto ol{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px;counter-reset:s}
+.howto li{display:grid;grid-template-columns:26px 1fr;gap:10px;counter-increment:s;color:var(--dim)}
+.howto li::before{content:counter(s);width:26px;height:26px;border-radius:50%;background:var(--panel);border:1px solid var(--line);display:grid;place-items:center;font-size:.8rem;font-weight:600;color:var(--tone);font-variant-numeric:tabular-nums}
+.howto li b{color:var(--paper);font-weight:600}
+.tip{background:var(--panel);border-radius:14px;padding:14px;font-size:.9rem;color:var(--dim)}
+.tip b{color:var(--tone)}
+.busy{color:var(--tone);font-size:.9rem;min-height:1.4em}
+
+/* ---------- Reader ---------- */
+#reader{position:fixed;inset:0;background:#000;z-index:5}
+#scroller{position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+#scroller .strip{max-width:900px;margin:0 auto;padding-top:env(safe-area-inset-top,0px);padding-bottom:calc(env(safe-area-inset-bottom,0px) + 40px)}
+#scroller img{display:block;width:100%;height:auto;margin:0 auto;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+#scroller img.wait{height:calc(min(100vw,900px) * 1.45);background:linear-gradient(180deg,#0b0b0c,#141518)}
+#scroller.gap img{margin-bottom:6px}
+#stage{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;touch-action:pan-y pinch-zoom}
+#stage img{max-width:100%;max-height:100%;object-fit:contain;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.bar{position:absolute;left:0;right:0;background:color-mix(in srgb,var(--panel) 92%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);display:flex;align-items:center;gap:8px;padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(8px,env(safe-area-inset-right,0px));transition:transform .22s ease,opacity .22s ease;z-index:6}
+.top{top:0;padding-top:calc(env(safe-area-inset-top,0px) + 6px);padding-bottom:6px}
+.bottom{bottom:0;padding-top:10px;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 10px);flex-direction:column;align-items:stretch;gap:8px}
+#reader.hide-ui .top{transform:translateY(-100%);opacity:0;pointer-events:none}
+#reader.hide-ui .bottom{transform:translateY(100%);opacity:0;pointer-events:none}
+.ib{flex:none;width:44px;height:44px;border-radius:12px;border:0;background:transparent;display:grid;place-items:center;cursor:pointer}
+.ib:active{background:var(--line)}
+.ib svg{width:22px;height:22px}
+.ttl{flex:1;min-width:0;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.seg{display:flex;background:var(--ink);border-radius:10px;padding:3px;flex:none}
+.seg button{border:0;background:transparent;padding:7px 10px;border-radius:8px;font-size:.82rem;font-weight:600;color:var(--dim);cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--line);color:var(--paper)}
+.row{display:flex;align-items:center;gap:12px;padding-inline:8px}
+.count{font-variant-numeric:tabular-nums;font-weight:600;min-width:5.5em;text-align:right;font-size:.9rem}
+.count small{color:var(--dim);font-weight:400}
+input[type=range]{flex:1;min-width:0;accent-color:var(--tone);height:28px}
+.extra{display:flex;gap:8px;justify-content:space-between;padding-inline:4px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:transparent;border-radius:999px;padding:6px 12px;font-size:.8rem;color:var(--dim);cursor:pointer}
+.chip[aria-pressed=true]{color:var(--tone);border-color:var(--tone)}
+.progress{position:absolute;left:0;bottom:0;height:3px;background:var(--tone);z-index:4;transition:width .2s;pointer-events:none}
+#reader:not(.hide-ui) .progress{opacity:0}
+.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 110px);transform:translateX(-50%);background:var(--paper);color:var(--ink);padding:10px 16px;border-radius:999px;font-weight:600;font-size:.88rem;z-index:20;max-width:calc(100% - 32px);text-align:center}
+@media (prefers-reduced-motion:reduce){.bar,.progress{transition:none}}
+</style>
+</head>
+<body>
+<main id="home">
+  <div class="col">
+    <header class="brand">
+      <h1>Kệ <span>Truyện</span></h1>
+      <p>Mở cả folder ảnh truyện trong app Files rồi lướt từng trang, xếp đúng thứ tự 1, 2, 3 … 10, 11.</p>
+    </header>
+
+    <div class="actions">
+      <label class="btn primary" for="pick">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+        Chọn ảnh hoặc file .zip
+      </label>
+      <input id="pick" type="file" multiple>
+      <label class="btn" for="pickDir" id="dirBtn" hidden>Chọn cả thư mục (máy tính)</label>
+      <input id="pickDir" type="file" webkitdirectory multiple>
+      <button class="btn ghost" id="demo" type="button">Xem thử với truyện mẫu</button>
+      <div class="busy" id="busy" aria-live="polite"></div>
+    </div>
+
+    <div class="resume" id="resume" hidden></div>
+
+    <section class="howto">
+      <h2>Cách mở folder trên iPhone</h2>
+      <ol>
+        <li><span>Bấm <b>Chọn ảnh hoặc file .zip</b>, rồi chọn <b>Chọn tệp</b> (Choose File).</span></li>
+        <li><span>Vào folder truyện, bấm <b>Chọn</b> (Select) ở góc trên bên phải.</span></li>
+        <li><span>Bấm <b>Chọn tất cả</b> (Select All), rồi bấm <b>Mở</b> (Open).</span></li>
+        <li><span>Đọc: chạm giữa màn hình để hiện thanh công cụ, kéo thanh trượt để nhảy trang.</span></li>
+      </ol>
+    </section>
+
+    <div class="tip"><b>Mẹo nhanh hơn:</b> trong Files, nhấn giữ folder truyện → <b>Nén</b> (Compress). Bạn sẽ có file .zip, chỉ cần chọn đúng một file đó là mở được cả bộ. File .cbz cũng mở được.</div>
+  </div>
+</main>
+
+<section id="reader" hidden>
+  <div id="scroller"><div class="strip" id="strip"></div></div>
+  <div id="stage" hidden><img id="pageImg" alt=""></div>
+  <div class="progress" id="prog"></div>
+
+  <div class="bar top">
+    <button class="ib" id="back" type="button" aria-label="Về kệ truyện">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+    </button>
+    <div class="ttl" id="ttl"></div>
+    <div class="seg" role="group" aria-label="Kiểu đọc">
+      <button type="button" id="mScroll" aria-pressed="true">Cuộn dọc</button>
+      <button type="button" id="mPage" aria-pressed="false">Lật trang</button>
+    </div>
+  </div>
+
+  <div class="bar bottom">
+    <div class="row">
+      <input type="range" id="slider" min="1" max="1" value="1" aria-label="Nhảy tới trang">
+      <div class="count" id="count">1 <small>/ 1</small></div>
+    </div>
+    <div class="extra">
+      <button class="chip" type="button" id="gapBtn" aria-pressed="false">Khoảng cách giữa trang</button>
+      <button class="chip" type="button" id="rtlBtn" aria-pressed="false">Lật kiểu manga (phải → trái)</button>
+    </div>
+  </div>
+</section>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const IMG_RE = /\.(jpe?g|png|gif|webp|avif|heic|heif|bmp)$/i;
+  const ZIP_RE = /\.(zip|cbz)$/i;
+  const collator = new Intl.Collator('vi', { numeric: true, sensitivity: 'base' });
+
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+  };
+  const prefs = Object.assign({ mode: 'scroll', rtl: false, gap: false }, store.get('kt:prefs', {}));
+  const savePrefs = () => store.set('kt:prefs', prefs);
+
+  let book = null;          // { id, title, pages: [{name,url}] }
+  let index = 0;
+  let io = null;
+  let wakeLock = null;
+
+  const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  if (!isIOS && 'webkitdirectory' in document.createElement('input')) $('dirBtn').hidden = false;
+
+  function toast(msg) {
+    const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg;
+    document.body.append(t); setTimeout(() => t.remove(), 2600);
+  }
+  function busy(msg) { $('busy').textContent = msg || ''; }
+
+  function showResume() {
+    const last = store.get('kt:last', null);
+    const el = $('resume');
+    if (!last) { el.hidden = true; return; }
+    el.hidden = false;
+    el.innerHTML = '';
+    el.append('Lần trước: ');
+    const b = document.createElement('b'); b.textContent = last.title; el.append(b);
+    el.append(` · trang ${last.page}/${last.total}. Mở lại đúng bộ ảnh đó là đọc tiếp từ trang này.`);
+  }
+  showResume();
+
+  /* ---------- Loading sources ---------- */
+  async function handleFiles(list) {
+    const files = [...list];
+    if (!files.length) return;
+    const zips = files.filter(f => ZIP_RE.test(f.name));
+    if (zips.length === 1 && files.length === 1) return openZip(zips[0]);
+    const imgs = files.filter(f => (f.type && f.type.startsWith('image/')) || IMG_RE.test(f.name));
+    if (!imgs.length) { toast('Không thấy ảnh nào trong những file đã chọn.'); return; }
+    const pages = imgs.map(f => ({ name: f.webkitRelativePath || f.name, url: URL.createObjectURL(f) }));
+    const rel = imgs[0].webkitRelativePath;
+    const title = rel ? rel.split('/')[0] : `${imgs.length} ảnh`;
+    openBook(title, pages, imgs.map(f => f.name + ':' + f.size).sort().join('|'));
+  }
+
+  function loadJSZip() {
+    if (window.JSZip) return Promise.resolve(window.JSZip);
+    return new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+      s.onload = () => res(window.JSZip); s.onerror = () => rej(new Error('jszip'));
+      document.head.append(s);
+    });
+  }
+
+  async function openZip(file) {
+    try {
+      busy('Đang mở ' + file.name + '…');
+      const JSZip = await loadJSZip();
+      const zip = await JSZip.loadAsync(file);
+      const entries = Object.values(zip.files).filter(e => !e.dir && IMG_RE.test(e.name) && !/(^|\/)(__MACOSX|\.)/.test(e.name));
+      if (!entries.length) { busy(); toast('File nén này không có ảnh.'); return; }
+      entries.sort((a, b) => collator.compare(a.name, b.name));
+      const pages = [];
+      for (let i = 0; i < entries.length; i++) {
+        busy(`Đang giải nén ${i + 1}/${entries.length}…`);
+        const blob = await entries[i].async('blob');
+        pages.push({ name: entries[i].name, url: URL.createObjectURL(blob) });
+      }
+      busy();
+      openBook(file.name.replace(ZIP_RE, ''), pages, file.name + ':' + file.size);
+    } catch (e) {
+      busy();
+      toast('Không mở được file nén. Thử nén lại folder trong Files.');
+    }
+  }
+
+  async function makeDemo() {
+    const pages = [];
+    const W = 800, H = 1160;
+    for (let p = 1; p <= 12; p++) {
+      const c = document.createElement('canvas'); c.width = W; c.height = H;
+      const g = c.getContext('2d');
+      g.fillStyle = '#f4f1ea'; g.fillRect(0, 0, W, H);
+      const layouts = [[[0,0,1,.4],[0,.4,.5,.6],[.5,.4,.5,.6]],[[0,0,.6,.5],[.6,0,.4,.5],[0,.5,1,.5]],[[0,0,1,.33],[0,.33,1,.34],[0,.67,1,.33]]];
+      const L = layouts[p % 3];
+      L.forEach(([x, y, w, h], k) => {
+        const px = 30 + x * (W - 60) + 8, py = 30 + y * (H - 60) + 8, pw = w * (W - 60) - 16, ph = h * (H - 60) - 16;
+        g.fillStyle = `hsl(${(p * 47 + k * 31) % 360} 25% ${78 - k * 6}%)`; g.fillRect(px, py, pw, ph);
+        g.save(); g.beginPath(); g.rect(px, py, pw, ph); g.clip();
+        g.fillStyle = 'rgba(0,0,0,.08)';
+        for (let yy = py; yy < py + ph; yy += 9) for (let xx = px + (yy / 9 % 2) * 4.5; xx < px + pw; xx += 9) { g.beginPath(); g.arc(xx, yy, 1.6, 0, 7); g.fill(); }
+        g.restore();
+        g.lineWidth = 6; g.strokeStyle = '#111'; g.strokeRect(px, py, pw, ph);
+      });
+      g.fillStyle = '#111'; g.font = '800 150px system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.fillText(String(p), W / 2, H / 2);
+      g.font = '600 28px system-ui, sans-serif'; g.fillText(`TRUYỆN MẪU · ${p}.jpg`, W / 2, H - 14 - 14);
+      const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', .85));
+      pages.push({ name: `${p}.jpg`, url: URL.createObjectURL(blob) });
+    }
+    // shuffle to prove natural sort
+    pages.sort(() => Math.random() - .5);
+    openBook('Truyện mẫu', pages, 'demo');
+  }
+
+  /* ---------- Reader ---------- */
+  function openBook(title, pages, sig) {
+    pages.sort((a, b) => collator.compare(a.name, b.name));
+    book = { title, pages, id: 'kt:pos:' + title + ':' + pages.length + ':' + hash(sig || '') };
+    const saved = store.get(book.id, 0);
+    index = Math.min(Math.max(0, saved), pages.length - 1);
+    $('ttl').textContent = title;
+    $('slider').max = pages.length;
+    $('home').hidden = true;
+    $('reader').hidden = false;
+    $('reader').classList.remove('hide-ui');
+    document.documentElement.style.overflow = 'hidden';
+    applyMode(true);
+    keepAwake();
+    if (index > 0) toast(`Đọc tiếp từ trang ${index + 1}`);
+  }
+
+  function closeBook() {
+    if (io) io.disconnect();
+    if (book) book.pages.forEach(p => URL.revokeObjectURL(p.url));
+    book = null;
+    $('strip').innerHTML = '';
+    $('pageImg').removeAttribute('src');
+    $('reader').hidden = true;
+    $('home').hidden = false;
+    document.documentElement.style.overflow = '';
+    $('pick').value = ''; $('pickDir').value = '';
+    if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; }
+    showResume();
+  }
+
+  function hash(s) { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return (h >>> 0).toString(36); }
+
+  let saveT = 0;
+  function setIndex(i, fromScroll) {
+    index = Math.min(Math.max(0, i), book.pages.length - 1);
+    const n = book.pages.length;
+    $('count').innerHTML = `${index + 1} <small>/ ${n}</small>`;
+    if (!fromScroll || document.activeElement !== $('slider')) $('slider').value = index + 1;
+    $('prog').style.width = ((index + 1) / n * 100) + '%';
+    clearTimeout(saveT);
+    saveT = setTimeout(() => {
+      if (!book) return;
+      store.set(book.id, index);
+      store.set('kt:last', { title: book.title, page: index + 1, total: n });
+    }, 400);
+  }
+
+  function applyMode(first) {
+    $('mScroll').setAttribute('aria-pressed', prefs.mode === 'scroll');
+    $('mPage').setAttribute('aria-pressed', prefs.mode === 'page');
+    $('rtlBtn').setAttribute('aria-pressed', prefs.rtl);
+    $('gapBtn').setAttribute('aria-pressed', prefs.gap);
+    $('rtlBtn').hidden = prefs.mode !== 'page';
+    $('gapBtn').hidden = prefs.mode !== 'scroll';
+    $('scroller').classList.toggle('gap', prefs.gap);
+    if (prefs.mode === 'scroll') {
+      $('stage').hidden = true; $('scroller').hidden = false;
+      buildStrip();
+    } else {
+      if (io) io.disconnect();
+      $('strip').innerHTML = '';
+      $('scroller').hidden = true; $('stage').hidden = false;
+      showPage(index);
+    }
+    setIndex(index);
+  }
+
+  /* Vertical strip */
+  let imgs = [];
+  function buildStrip() {
+    const strip = $('strip'); strip.innerHTML = '';
+    if (io) io.disconnect();
+    const sc = $('scroller');
+    io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) loadImg(e.target); }), { root: sc, rootMargin: '200% 0px' });
+    imgs = book.pages.map((p, i) => {
+      const im = document.createElement('img');
+      im.className = 'wait'; im.alt = `Trang ${i + 1}`; im.decoding = 'async'; im.dataset.i = i; im.draggable = false;
+      strip.append(im); io.observe(im);
+      return im;
+    });
+    requestAnimationFrame(() => { sc.scrollTop = index > 0 ? imgs[index].offsetTop : 0; });
+  }
+  function loadImg(im) {
+    if (im.dataset.loaded) return;
+    im.dataset.loaded = '1';
+    im.onload = () => {
+      const sc = $('scroller');
+      const before = im.offsetHeight, top = im.offsetTop;
+      im.classList.remove('wait');
+      const delta = im.offsetHeight - before;
+      if (delta && top < sc.scrollTop) sc.scrollTop += delta;   // keep current page still while pages above load
+    };
+    im.src = book.pages[+im.dataset.i].url;
+  }
+  let lastY = 0, ticking = false;
+  $('scroller').addEventListener('scroll', () => {
+    if (ticking || !book) return; ticking = true;
+    requestAnimationFrame(() => {
+      ticking = false;
+      const sc = $('scroller'), y = sc.scrollTop, probe = y + sc.clientHeight * 0.35;
+      let lo = 0, hi = imgs.length - 1;
+      while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (imgs[mid].offsetTop <= probe) lo = mid; else hi = mid - 1; }
+      if (lo !== index) setIndex(lo, true);
+      if (y > lastY + 12 && y > 80) $('reader').classList.add('hide-ui');
+      lastY = y;
+    });
+  }, { passive: true });
+  $('scroller').addEventListener('click', () => $('reader').classList.toggle('hide-ui'));
+
+  /* Paged */
+  function showPage(i) {
+    index = Math.min(Math.max(0, i), book.pages.length - 1);
+    $('pageImg').src = book.pages[index].url;
+    $('pageImg').alt = `Trang ${index + 1}`;
+    [index + 1, index + 2].forEach(k => { if (book.pages[k]) { const im = new Image(); im.src = book.pages[k].url; } });
+    setIndex(index);
+  }
+  function step(d) {
+    if (!book) return;
+    const ni = index + d;
+    if (ni < 0) return toast('Đây là trang đầu.');
+    if (ni >= book.pages.length) return toast('Hết truyện rồi.');
+    if (prefs.mode === 'page') showPage(ni);
+    else { $('scroller').scrollTop = imgs[ni].offsetTop; }
+  }
+  const stage = $('stage');
+  stage.addEventListener('click', e => {
+    if (swiped) { swiped = false; return; }
+    const x = e.clientX / stage.clientWidth;
+    if (x > .3 && x < .7) { $('reader').classList.toggle('hide-ui'); return; }
+    const forward = x >= .7;
+    step((forward !== prefs.rtl) ? 1 : -1);
+    $('reader').classList.add('hide-ui');
+  });
+  let tx = 0, ty = 0, swiped = false;
+  stage.addEventListener('touchstart', e => { if (e.touches.length === 1) { tx = e.touches[0].clientX; ty = e.touches[0].clientY; } }, { passive: true });
+  stage.addEventListener('touchend', e => {
+    if (e.changedTouches.length !== 1 || (window.visualViewport && visualViewport.scale > 1.05)) return;
+    const dx = e.changedTouches[0].clientX - tx, dy = e.changedTouches[0].clientY - ty;
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      swiped = true; setTimeout(() => swiped = false, 400);
+      const left = dx < 0;                 // finger moved left = next page (LTR)
+      step((left !== prefs.rtl) ? 1 : -1);
+    }
+  }, { passive: true });
+
+  /* Controls */
+  $('pick').addEventListener('change', e => handleFiles(e.target.files));
+  $('pickDir').addEventListener('change', e => handleFiles(e.target.files));
+  $('demo').addEventListener('click', makeDemo);
+  $('back').addEventListener('click', closeBook);
+  $('mScroll').addEventListener('click', () => { if (prefs.mode !== 'scroll') { prefs.mode = 'scroll'; savePrefs(); applyMode(); } });
+  $('mPage').addEventListener('click', () => { if (prefs.mode !== 'page') { prefs.mode = 'page'; savePrefs(); applyMode(); } });
+  $('rtlBtn').addEventListener('click', () => { prefs.rtl = !prefs.rtl; savePrefs(); $('rtlBtn').setAttribute('aria-pressed', prefs.rtl); });
+  $('gapBtn').addEventListener('click', () => { prefs.gap = !prefs.gap; savePrefs(); applyMode(); });
+  $('slider').addEventListener('input', e => { $('count').innerHTML = `${e.target.value} <small>/ ${book.pages.length}</small>`; });
+  $('slider').addEventListener('change', e => {
+    const i = +e.target.value - 1;
+    if (prefs.mode === 'page') showPage(i); else { index = i; $('scroller').scrollTop = imgs[i].offsetTop; setIndex(i); }
+  });
+  document.addEventListener('keydown', e => {
+    if (!book) return;
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || (e.key === ' ' && prefs.mode === 'page')) { e.preventDefault(); step(prefs.rtl && e.key === 'ArrowRight' ? -1 : 1); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); step(prefs.rtl && e.key === 'ArrowLeft' ? 1 : -1); }
+    else if (e.key === 'Escape') closeBook();
+  });
+
+  async function keepAwake() {
+    try { if ('wakeLock' in navigator && !wakeLock) { wakeLock = await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release', () => wakeLock = null); } } catch {}
+  }
+  document.addEventListener('visibilitychange', () => { if (book && document.visibilityState === 'visible') keepAwake(); });
+})();
+</script>
+</body>
+</html>
