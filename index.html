@@ -133,6 +133,7 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--tone);height:28px}
 .chip[aria-pressed=true]{color:var(--tone);border-color:var(--tone)}
 .progress{position:absolute;left:0;bottom:0;height:3px;background:var(--tone);z-index:4;transition:width .2s;pointer-events:none}
 #reader:not(.hide-ui) .progress{opacity:0}
+#veil{position:fixed;inset:0;background:#000;z-index:100}
 .toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 110px);transform:translateX(-50%);background:var(--paper);color:var(--ink);padding:10px 16px;border-radius:999px;font-weight:600;font-size:.88rem;z-index:60;max-width:calc(100% - 32px);text-align:center}
 @media (prefers-reduced-motion:reduce){.bar,.progress,#drawer,.scrim{transition:none}}
 </style>
@@ -191,6 +192,7 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--tone);height:28px}
   <div class="dfoot" id="shelfFoot"></div>
 </aside>
 
+<div id="veil" hidden></div>
 <section id="reader" hidden>
   <div id="scroller"><div class="strip" id="strip"></div></div>
   <div id="stage" hidden><img id="pageImg" alt=""></div>
@@ -933,6 +935,19 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--tone);height:28px}
     try { if ('wakeLock' in navigator && !wakeLock) { wakeLock = await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release', () => wakeLock = null); } } catch {}
   }
   document.addEventListener('visibilitychange', () => { if (book && document.visibilityState === 'visible') keepAwake(); });
+
+  /* Black cover for hidden books: shown the moment the page loses focus (swipe up to the
+     app switcher, Control Center, Safari tab overview), so the snapshot iOS takes is black. */
+  const secretOnScreen = () => (book && book.secret) || (vaultKey && !$('drawer').hidden && secretShelf.length > 0);
+  const veil = on => { $('veil').hidden = !on; };
+  const cover = () => { if (secretOnScreen()) veil(true); };
+  const uncover = () => { if (document.visibilityState === 'visible') veil(false); };
+  window.addEventListener('blur', cover);
+  window.addEventListener('pagehide', cover);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') cover(); else setTimeout(uncover, 60); });
+  window.addEventListener('focus', () => setTimeout(uncover, 60));
+  window.addEventListener('pageshow', () => setTimeout(uncover, 60));
+  $('veil').addEventListener('click', () => veil(false));   // tap to reveal if focus events never come back
 })();
 </script>
 </body>
