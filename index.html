@@ -86,6 +86,14 @@ input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events
 .act{border:1px solid var(--line);background:transparent;border-radius:999px;padding:4px 10px;font-size:.78rem;color:var(--paper);cursor:pointer;min-height:30px}
 .act.primary{background:var(--tone);border-color:var(--tone);color:var(--tone-ink);font-weight:600}
 .act.del{color:var(--danger)}
+.act.tickbtn{display:inline-flex;align-items:center;gap:4px}
+.act svg,.chip svg{width:14px;height:14px;flex:none}
+.act.tickbtn[aria-pressed=true]{color:var(--tone);border-color:var(--tone)}
+.item.done .t{color:var(--dim)}
+.thumb{position:relative}
+.tick{position:absolute;right:-6px;bottom:-6px;width:22px;height:22px;border-radius:50%;background:var(--tone);color:var(--tone-ink);display:grid;place-items:center;border:2px solid var(--ink)}
+.tick svg{width:12px;height:12px}
+.item.done .thumb{filter:saturate(.4) brightness(.75)}
 .sect{display:flex;align-items:center;gap:8px;margin-top:10px;padding:4px 6px;color:var(--dim);font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;font-weight:600}
 .sect::after{content:"";flex:1;height:1px;background:var(--line)}
 .vault{display:flex;align-items:center;gap:10px;padding:12px;border-radius:14px;border:1px dashed var(--line);color:var(--dim);font-size:.88rem}
@@ -131,6 +139,8 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--tone);height:28px}
 .extra{display:flex;gap:8px;justify-content:space-between;padding-inline:4px;flex-wrap:wrap}
 .chip{border:1px solid var(--line);background:transparent;border-radius:999px;padding:6px 12px;font-size:.8rem;color:var(--dim);cursor:pointer}
 .chip[aria-pressed=true]{color:var(--tone);border-color:var(--tone)}
+.tickchip{display:inline-flex;align-items:center;gap:6px}
+.tickchip[aria-pressed=true]{background:var(--tone);color:var(--tone-ink)}
 .progress{position:absolute;left:0;bottom:0;height:3px;background:var(--tone);z-index:4;transition:width .2s;pointer-events:none}
 #reader:not(.hide-ui) .progress{opacity:0}
 #veil{position:fixed;inset:0;background:#000;z-index:100}
@@ -217,6 +227,7 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--tone);height:28px}
     <div class="extra">
       <button class="chip" type="button" id="gapBtn" aria-pressed="false">Khoảng cách giữa trang</button>
       <button class="chip" type="button" id="rtlBtn" aria-pressed="false">Lật kiểu manga (phải → trái)</button>
+      <button class="chip tickchip" type="button" id="doneBtn" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>Đánh dấu đã đọc xong</span></button>
     </div>
   </div>
 </section>
@@ -311,16 +322,19 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--tone);height:28px}
   let secretShelf = [];  // decrypted hidden metas (only while unlocked)
   let lockInfo = null;
 
+  // Unfinished books first, finished ones sink to the bottom; each group by last opened.
+  const byShelfOrder = (a, b) => (isDone(a) - isDone(b)) || ((b.openedAt || 0) - (a.openedAt || 0));
+
   async function loadShelf() {
     try {
       const metas = await DB.all('meta');
       lockInfo = await DB.get('kv', 'lock');
-      shelf = metas.filter(m => !m.hidden).sort((a, b) => (b.openedAt || 0) - (a.openedAt || 0));
+      shelf = metas.filter(m => !m.hidden).sort(byShelfOrder);
       if (vaultKey) {
         const hidden = metas.filter(m => m.hidden);
         secretShelf = [];
         for (const m of hidden) { try { secretShelf.push(Object.assign({}, m, await decJSON(vaultKey, m.sealed))); } catch {} }
-        secretShelf.sort((a, b) => (b.openedAt || 0) - (a.openedAt || 0));
+        secretShelf.sort(byShelfOrder);
       }
     } catch { shelf = []; }
     const n = shelf.length;
@@ -415,7 +429,7 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--tone);height:28px}
     const ok = await dialog({ title: 'Xoá khỏi kệ?', body: `“${meta.title}” sẽ bị xoá khỏi trang này. File gốc trong app Files không bị ảnh hưởng.`, okText: 'Xoá', danger: true });
     if (!ok) return;
     await DB.delBook(meta.id);
-    store.del(posKeyFor(meta.sig, meta.count));
+    store.del(posKeyFor(meta.sig, meta.count)); store.del(doneKeyFor(meta.sig, meta.count));
     await loadShelf();
     toast('Đã xoá khỏi kệ.');
   }
@@ -511,22 +525,25 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--tone);height:28px}
 
   /* ---------- Drawer UI ---------- */
   const ICON_LOCK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+  const ICON_TICK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
   const ICON_BOOK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5a2 2 0 0 1 2-2h12v16H6a2 2 0 0 0-2 2z"/><path d="M4 19V5"/></svg>';
 
   function itemHTML(m, i, secret) {
     const pos = store.get(posKeyFor(m.sig, m.count), 0);
     const pct = m.count ? Math.round((pos + 1) / m.count * 100) : 0;
-    const where = pos > 0 ? `Đọc tới trang ${pos + 1}` : 'Chưa đọc';
+    const done = isDone(m);
+    const where = done ? 'Đã đọc xong' : pos > 0 ? `Đọc tới trang ${pos + 1}` : 'Chưa đọc';
     const thumb = m.thumb ? ` style="background-image:url('${m.thumb}')"` : '';
     const g = secret ? 's' : 'p';
-    return `<div class="item">
-      <button class="thumb" data-a="open" data-g="${g}" data-i="${i}"${thumb} aria-label="Mở ${esc(m.title)}">${m.thumb ? '' : ICON_BOOK}</button>
+    return `<div class="item${done ? ' done' : ''}">
+      <button class="thumb" data-a="open" data-g="${g}" data-i="${i}"${thumb} aria-label="Mở ${esc(m.title)}">${m.thumb ? '' : ICON_BOOK}${done ? `<span class="tick">${ICON_TICK}</span>` : ''}</button>
       <div class="info">
         <button class="t" data-a="open" data-g="${g}" data-i="${i}">${esc(m.title)}</button>
         <div class="m">${m.count} trang · ${fmtSize(m.size)} · ${where}</div>
-        <div class="bar-p"><i style="width:${pos > 0 ? pct : 0}%"></i></div>
+        <div class="bar-p"><i style="width:${done ? 100 : pos > 0 ? pct : 0}%"></i></div>
         <div class="acts">
-          <button class="act primary" data-a="open" data-g="${g}" data-i="${i}">Đọc</button>
+          <button class="act primary" data-a="open" data-g="${g}" data-i="${i}">${done ? 'Đọc lại' : 'Đọc'}</button>
+          <button class="act tickbtn" data-a="done" data-g="${g}" data-i="${i}" aria-pressed="${done}">${ICON_TICK}${done ? 'Đã xong' : 'Xong'}</button>
           <button class="act" data-a="export" data-g="${g}" data-i="${i}">Lưu ra Files</button>
           <button class="act" data-a="${secret ? 'unhide' : 'hide'}" data-g="${g}" data-i="${i}">${secret ? 'Bỏ ẩn' : 'Ẩn'}</button>
           <button class="act del" data-a="del" data-g="${g}" data-i="${i}">Xoá</button>
@@ -568,6 +585,7 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--tone);height:28px}
     if (!meta) return;
     if (a === 'open') openFromShelf(meta);
     else if (a === 'del') deleteBook(meta);
+    else if (a === 'done') { setDone(meta.sig, meta.count, !isDone(meta)); await loadShelf(); }
     else if (a === 'export') exportBook(meta);
     else if (a === 'hide') hideBook(meta);
     else if (a === 'unhide') unhideBook(meta);
@@ -763,10 +781,22 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--tone);height:28px}
 
   /* ---------- Reader ---------- */
   const posKeyFor = (sig, n) => 'kt:pos:' + hash(sig || '') + ':' + n;
+  const doneKeyFor = (sig, n) => 'kt:done:' + hash(sig || '') + ':' + n;
+
+  function isDone(m) { return !!store.get(doneKeyFor(m.sig, m.count), false); }
+  function setDone(sig, n, on) {
+    if (on) store.set(doneKeyFor(sig, n), Date.now()); else store.del(doneKeyFor(sig, n));
+    if (book && book.sig === sig && book.pages.length === n) syncDoneBtn();
+  }
+  function syncDoneBtn() {
+    const on = isDone({ sig: book.sig, count: book.pages.length });
+    $('doneBtn').setAttribute('aria-pressed', on);
+    $('doneBtn').lastChild.textContent = on ? 'Đã đọc xong' : 'Đánh dấu đã đọc xong';
+  }
 
   function openBook(title, pages, opts = {}) {
     pages.sort((a, b) => collator.compare(a.name, b.name));
-    book = { title, pages, posKey: posKeyFor(opts.sig, pages.length), secret: !!opts.secret };
+    book = { title, pages, sig: opts.sig, posKey: posKeyFor(opts.sig, pages.length), secret: !!opts.secret, nudged: false };
     const saved = store.get(book.posKey, 0);
     index = Math.min(Math.max(0, saved), pages.length - 1);
     $('ttl').textContent = title;
@@ -776,6 +806,7 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--tone);height:28px}
     $('reader').classList.remove('hide-ui');
     document.documentElement.style.overflow = 'hidden';
     applyMode();
+    syncDoneBtn();
     keepAwake();
     if (index > 0) toast(`Đọc tiếp từ trang ${index + 1}`);
   }
@@ -801,6 +832,10 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--tone);height:28px}
     $('count').innerHTML = `${index + 1} <small>/ ${n}</small>`;
     if (!fromScroll || document.activeElement !== $('slider')) $('slider').value = index + 1;
     $('prog').style.width = ((index + 1) / n * 100) + '%';
+    if (index === n - 1 && !book.nudged && !isDone({ sig: book.sig, count: n })) {
+      book.nudged = true;
+      $('reader').classList.remove('hide-ui');   // last page: show the bar with the tick button
+    }
     clearTimeout(saveT);
     saveT = setTimeout(() => {
       if (!book) return;
@@ -917,6 +952,12 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--tone);height:28px}
   $('mScroll').addEventListener('click', () => { if (prefs.mode !== 'scroll') { prefs.mode = 'scroll'; savePrefs(); applyMode(); } });
   $('mPage').addEventListener('click', () => { if (prefs.mode !== 'page') { prefs.mode = 'page'; savePrefs(); applyMode(); } });
   $('rtlBtn').addEventListener('click', () => { prefs.rtl = !prefs.rtl; savePrefs(); $('rtlBtn').setAttribute('aria-pressed', prefs.rtl); });
+  $('doneBtn').addEventListener('click', async () => {
+    const on = !isDone({ sig: book.sig, count: book.pages.length });
+    setDone(book.sig, book.pages.length, on);
+    toast(on ? 'Đã đánh dấu đọc xong.' : 'Đã bỏ đánh dấu.');
+    loadShelf();
+  });
   $('gapBtn').addEventListener('click', () => { prefs.gap = !prefs.gap; savePrefs(); applyMode(); });
   $('slider').addEventListener('input', e => { $('count').innerHTML = `${e.target.value} <small>/ ${book.pages.length}</small>`; });
   $('slider').addEventListener('change', e => {
