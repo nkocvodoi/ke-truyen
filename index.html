@@ -347,7 +347,7 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--tone);height:28px}
   }
 
   /* Keep a copy of what was just opened. */
-  async function saveToShelf({ title, sig, kind, files, count, firstUrl }) {
+  async function saveToShelf({ title, sig, kind, files, count, firstUrl, quiet, openedAt = Date.now() }) {
     const sigh = hash(sig);
     const size = files.reduce((s, f) => s + f.blob.size, 0);
     try {
@@ -355,17 +355,17 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--tone);height:28px}
       if (existing) { await touch(existing); return existing.id; }
       if (navigator.storage && navigator.storage.estimate) {
         const { usage = 0, quota = 0 } = await navigator.storage.estimate();
-        if (quota && usage + size > quota * 0.95) { toast('Máy không đủ chỗ để lưu truyện này vào kệ.'); return null; }
+        if (quota && usage + size > quota * 0.95) { if (!quiet) toast('Máy không đủ chỗ để lưu truyện này vào kệ.'); return null; }
       }
       if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
       const thumb = firstUrl ? await makeThumb(firstUrl) : '';
-      const meta = { id: 'b' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), sigh, hidden: false, size, addedAt: Date.now(), openedAt: Date.now(), title, sig, kind, count, thumb };
+      const meta = { id: 'b' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), sigh, hidden: false, size, addedAt: Date.now(), openedAt, title, sig, kind, count, thumb };
       await DB.putBook(meta, { files: files.map(f => ({ name: f.name, blob: f.blob })) });
       await loadShelf();
-      toast('Đã lưu vào kệ. Lần sau mở từ menu ☰.');
+      if (!quiet) toast('Đã lưu vào kệ. Lần sau mở từ menu ☰.');
       return meta.id;
     } catch (e) {
-      toast(e && e.name === 'QuotaExceededError' ? 'Máy không đủ chỗ để lưu truyện này vào kệ.' : 'Không lưu được truyện vào kệ.');
+      if (!quiet) toast(e && e.name === 'QuotaExceededError' ?'Máy không đủ chỗ để lưu truyện này vào kệ.' : 'Không lưu được truyện vào kệ.');
       return null;
     }
   }
@@ -645,9 +645,17 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--tone);height:28px}
     const files = [...list];
     if (!files.length) return;
     const zips = files.filter(f => ZIP_RE.test(f.name));
-    if (zips.length === 1 && files.length === 1) return openZip(zips[0], zips[0].name.replace(ZIP_RE, ''), { sig: zips[0].name + ':' + zips[0].size, save: true });
-    const imgs = files.filter(f => (f.type && f.type.startsWith('image/')) || IMG_RE.test(f.name));
-    if (!imgs.length) { toast('Không thấy ảnh nào trong những file đã chọn.'); return; }
+    const imgs = files.filter(f => !ZIP_RE.test(f.name) && ((f.type && f.type.startsWith('image/')) || IMG_RE.test(f.name)));
+    if (!imgs.length && zips.length === 1) return openZip(zips[0], zips[0].name.replace(ZIP_RE, ''), { sig: zips[0].name + ':' + zips[0].size, save: true });
+    if (!imgs.length && zips.length > 1) {
+      // Several .zip files: add each one to the shelf, then show the shelf to pick one.
+      const { added, failed } = await addZipsToShelf(zips);
+      if (added) openDrawer();
+      toast(added ? `Đã thêm ${added} truyện vào kệ.` + (failed ? ` ${failed} file không mở được.` : '') : 'Không mở được file nén nào. Thử nén lại folder trong Files.');
+      return;
+    }
+    if (!imgs.length) { toast('Không thấy ảnh hay file .zip nào trong những file đã chọn.'); return; }
+    if (zips.length) addZipsToShelf(zips).then(({ added }) => { if (added) toast(`Đã thêm ${added} file .zip vào kệ.`); });
     const named = imgs.map(f => ({ name: f.webkitRelativePath || f.name, blob: f }));
     const pages = named.map(f => ({ name: f.name, url: URL.createObjectURL(f.blob) }));
     const rel = imgs[0].webkitRelativePath;
@@ -668,14 +676,41 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--tone);height:28px}
     });
   }
 
+  async function zipEntries(blob) {
+    const JSZip = await loadJSZip();
+    const zip = await JSZip.loadAsync(blob);
+    return Object.values(zip.files)
+      .filter(e => !e.dir && IMG_RE.test(e.name) && !/(^|\/)(__MACOSX|\.)/.test(e.name))
+      .sort((a, b) => collator.compare(a.name, b.name));
+  }
+
+  /* Add zip files to the shelf without opening them: only the first page is read, for the cover. */
+  async function addZipsToShelf(zips) {
+    let added = 0, failed = 0;
+    zips = [...zips].sort((a, b) => collator.compare(a.name, b.name));
+    const t0 = Date.now();   // Tập 1 lands on top of the shelf, then Tập 2, …
+    for (let i = 0; i < zips.length; i++) {
+      const f = zips[i];
+      busy(`Đang thêm vào kệ ${i + 1}/${zips.length}: ${f.name}`);
+      let url = '';
+      try {
+        const entries = await zipEntries(f);
+        if (!entries.length) { failed++; continue; }
+        url = URL.createObjectURL(await entries[0].async('blob'));
+        const id = await saveToShelf({ title: f.name.replace(ZIP_RE, ''), sig: f.name + ':' + f.size, kind: 'zip', files: [{ name: f.name, blob: f }], count: entries.length, firstUrl: url, quiet: true, openedAt: t0 - i });
+        if (id) added++; else failed++;
+      } catch { failed++; }
+      finally { if (url) URL.revokeObjectURL(url); }
+    }
+    busy();
+    return { added, failed };
+  }
+
   async function openZip(blob, title, opts) {
     try {
       busy('Đang mở ' + title + '…');
-      const JSZip = await loadJSZip();
-      const zip = await JSZip.loadAsync(blob);
-      const entries = Object.values(zip.files).filter(e => !e.dir && IMG_RE.test(e.name) && !/(^|\/)(__MACOSX|\.)/.test(e.name));
+      const entries = await zipEntries(blob);
       if (!entries.length) { busy(); toast('File nén này không có ảnh.'); return; }
-      entries.sort((a, b) => collator.compare(a.name, b.name));
       const pages = [];
       for (let i = 0; i < entries.length; i++) {
         busy(`Đang giải nén ${i + 1}/${entries.length}…`);
