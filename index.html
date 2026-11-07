@@ -646,7 +646,12 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--tone);height:28px}
     if (!files.length) return;
     const zips = files.filter(f => ZIP_RE.test(f.name));
     const imgs = files.filter(f => !ZIP_RE.test(f.name) && ((f.type && f.type.startsWith('image/')) || IMG_RE.test(f.name)));
-    if (!imgs.length && zips.length === 1) return openZip(zips[0], zips[0].name.replace(ZIP_RE, ''), { sig: zips[0].name + ':' + zips[0].size, save: true });
+    // A book that is already hidden stays secret even when its original file is picked again.
+    const isHidden = async sig => { const m = await findBySig(hash(sig)); return !!(m && m.hidden); };
+    if (!imgs.length && zips.length === 1) {
+      const sig = zips[0].name + ':' + zips[0].size;
+      return openZip(zips[0], zips[0].name.replace(ZIP_RE, ''), { sig, save: true, secret: await isHidden(sig) });
+    }
     if (!imgs.length && zips.length > 1) {
       // Several .zip files: add each one to the shelf, then show the shelf to pick one.
       const { added, failed } = await addZipsToShelf(zips);
@@ -661,7 +666,7 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--tone);height:28px}
     const rel = imgs[0].webkitRelativePath;
     const title = rel ? rel.split('/')[0] : `${imgs.length} ảnh`;
     const sig = imgs.map(f => f.name + ':' + f.size).sort().join('|');
-    openBook(title, pages, { sig });
+    openBook(title, pages, { sig, secret: await isHidden(sig) });
     const first = pages[0];
     saveToShelf({ title, sig, kind: 'images', files: named, count: pages.length, firstUrl: first && first.url });
   }
